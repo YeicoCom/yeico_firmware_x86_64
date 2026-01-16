@@ -2,8 +2,6 @@
 
 set -e
 
-env > /tmp/nerves.env
-
 # Create the Grub environment blocks
 grub-editenv $BINARIES_DIR/grubenv_a create
 grub-editenv $BINARIES_DIR/grubenv_a set boot=0

@@ -1,5 +1,6 @@
 this solves the button click count not triggering on live view (kinda works on normal web sites)
 this does not solve the righ click context menu bug (oncontextmenu="return false;" still needed)
+this does not solve the pointer not changing to hand on link/button hover
 
 generated patch by apt installing and running weston on builder
 and then also in builder cloned, built, and installed cog as follows
