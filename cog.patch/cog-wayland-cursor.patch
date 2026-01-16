@@ -1,0 +1,74 @@
+diff --git a/platform/wayland/cog-platform-wl.c b/platform/wayland/cog-platform-wl.c
+index c81028c..80ff862 100644
+--- a/platform/wayland/cog-platform-wl.c
++++ b/platform/wayland/cog-platform-wl.c
+@@ -227,6 +227,7 @@ static struct {
+     GSource *event_src;
+ 
+     struct wl_list shm_buffer_list;
++    int32_t wpe_modifier;
+ } wl_data = {};
+ 
+ static struct {
+@@ -895,8 +896,7 @@ pointer_on_motion(void *data, struct wl_pointer *pointer, uint32_t time, wl_fixe
+                                             time,
+                                             wl_data.pointer.x * wl_data.current_output->scale,
+                                             wl_data.pointer.y * wl_data.current_output->scale,
+-                                            wl_data.pointer.button,
+-                                            wl_data.pointer.state};
++                                            0, 0, 0};
+ 
+     wpe_view_backend_dispatch_pointer_event(wpe_view_data.backend, &event);
+ }
+@@ -909,6 +909,9 @@ pointer_on_button(void *data,
+                   uint32_t button,
+                   uint32_t state)
+ {
++    // wl_pointer manages the cursor image
++    g_debug("pointer_on_button serial:%d time:%d button:%d state:%d, x:%d y:%d", serial, time, button, state, wl_data.pointer.x, wl_data.pointer.y);
++
+     wl_data.event_serial = serial;
+ 
+     /* @FIXME: what is this for?
+@@ -918,9 +921,32 @@ pointer_on_button(void *data,
+         button = 0;
+     */
+ 
+-    wl_data.pointer.button = !!state ? button : 0;
++    uint32_t wpe_modifier = 0;
++    uint32_t wpe_button = 0;
++
++    switch (button) {
++    case 272:
++        wpe_modifier = wpe_input_pointer_modifier_button1;
++        wpe_button = 1; 
++        break;
++
++    case 274:
++        wpe_modifier = wpe_input_pointer_modifier_button3;
++        wpe_button = 3;
++        break;
++
++    case 273:
++        wpe_modifier = wpe_input_pointer_modifier_button2;
++        wpe_button = 2;
++        break;
++    }
++
++    wl_data.pointer.button = wpe_button;
+     wl_data.pointer.state = state;
+ 
++    wl_data.wpe_modifier &= ~wpe_modifier;
++    if (state) wl_data.wpe_modifier |= wpe_modifier;
++
+     struct wpe_input_pointer_event event = {
+         wpe_input_pointer_event_type_button,
+         time,
+@@ -928,6 +954,7 @@ pointer_on_button(void *data,
+         wl_data.pointer.y * wl_data.current_output->scale,
+         wl_data.pointer.button,
+         wl_data.pointer.state,
++        wl_data.wpe_modifier,
+     };
+ 
+     if (popup_data.wl_surface) {
