@@ -1,0 +1,11 @@
+diff -ruN weston-patched/libweston/backend-drm/state-propose.c weston-14.0.1/libweston/backend-drm/state-propose.c
+--- weston-patched/libweston/backend-drm/state-propose.c	2026-01-24 23:02:58.759327461 -0600
++++ weston-14.0.1/libweston/backend-drm/state-propose.c	2026-01-24 23:03:59.992503624 -0600
+@@ -530,7 +530,6 @@
+ 				continue;
+ 			break;
+ 		case WDRM_PLANE_TYPE_OVERLAY:
+-			assert(fb);
+ 			assert(mode != DRM_OUTPUT_PROPOSE_STATE_RENDERER_ONLY);
+ 			/* if the view covers the whole output, put it in the
+ 			 * scanout plane, not overlay */
