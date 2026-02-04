@@ -1,38 +1,57 @@
 #!/bin/bash
 
-SELF=$(realpath $0)
-DIR=$(dirname $SELF)
-TARGET=$(cat $DIR/yeico.target)
+SELF_RP=$(realpath $0)
+SELF_DIR=$(dirname $SELF_RP)
+SELF_LOG=${SELF_RP%.*}.log
+TARGET=$(cat $SELF_DIR/yeico.target)
+
+# uncomment for debugging
+# exec > >(tee -a $SELF_LOG) 2>&1
 
 case "$1" in
     clean)
-    cd $(dirname $SELF)
+    cd $SELF_DIR
     rm -fr ~/.nerves/artifacts/yeico_firmware_$TARGET-*
     rm -fr deps _build .nerves
     ;;
+    cross)
+    cd $SELF_DIR
+    cd .nerves/artifacts/yeico_firmware_$TARGET-portable-1.32.0
+    rm -f images/*_sdk-buildroot.tar.gz
+    $SELF_RP BR2_SDK_PREFIX=cross-$TARGET make sdk
+    ls -l images/cross-$TARGET.tar.gz || (echo Cross build failed; exit 1)
+    mv images/cross-$TARGET.tar.gz ~/.nerves/dl/cross-$TARGET.tar.gz
+    cd $SELF_DIR
+    cross_build=~/.nerves/dl/cross-$TARGET.txt
+    echo STAMP=$(date +"%Y-%m-%dT%H:%M:%S.%3N") > $cross_build
+    echo REPO=$(git remote get-url origin) >> $cross_build
+    echo COMMIT=$(git rev-parse HEAD) >> $cross_build
+    echo BRANCH=$(git rev-parse --abbrev-ref HEAD) >> $cross_build
+    echo DIRTY=$([ -n "$(git status --porcelain)" ] && echo yes || echo no) >> $cross_build
+    ls -l ~/.nerves/dl/cross-$TARGET.*
+    ;;
     artifact)
-    cd $(dirname $SELF)
+    cd $SELF_DIR
     mix deps.get
-    $SELF make
     mix nerves.artifact
     ls -l yeico_firmware_$TARGET-*.tar.gz
     mv yeico_firmware_$TARGET-*.tar.gz ~/.nerves/dl
     ls -l ~/.nerves/dl/yeico_firmware_$TARGET-*.tar.gz
     ;;
-    setup)
-    cd $(dirname $SELF)
+    shell)
+    cd $SELF_DIR
     deps/nerves_system_br/create-build.sh nerves_defconfig .nerves/artifacts/yeico_firmware_$TARGET-portable-1.32.0
     cd .nerves/artifacts/yeico_firmware_$TARGET-portable-1.32.0
     echo Running within an screen session
-    $SELF patch | tee ${SELF%.*}.log
+    $SELF_RP patch | tee $SELF_LOG
     [ $# -gt 0 ] && shift
-    [ $# -gt 0 ] && echo Executing: "$@"
-    [ $# -gt 0 ] && bash -c "$@"
+    [ $# -gt 0 ] && echo Executing: $@
+    [ $# -gt 0 ] && (echo $@ | bash)
     [ $# -gt 0 ] || bash
     ;;
     patch)
     counter=0
-    for p in $(dirname $SELF)/patches/*.patch; do
+    for p in $SELF_DIR/patches/*.patch; do
         echo $p
         array=(${p//-/ })
         package=${array[1]}
@@ -49,8 +68,8 @@ case "$1" in
     echo Total patched: $counter
     ;;
     *)
-    cd $(dirname $SELF)
+    cd $SELF_DIR
     mix deps.get
-    screen $SELF setup "$@"
+    screen $SELF_RP shell $@
     ;;
 esac
