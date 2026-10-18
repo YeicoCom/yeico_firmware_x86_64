@@ -19,6 +19,8 @@ case "$1" in
     cd .nerves/artifacts/yeico_firmware_$TARGET-portable-1.32.0
     rm -f images/*_sdk-buildroot.tar.gz
     $SELF_RP BR2_SDK_PREFIX=cross-$TARGET make sdk
+    # takes a while to show up, works on second attemp
+    until ls -l images/cross-$TARGET.tar.gz; do sleep 1; done
     ls -l images/cross-$TARGET.tar.gz || (echo Cross build failed; exit 1)
     mv images/cross-$TARGET.tar.gz ~/.nerves/dl/cross-$TARGET.tar.gz
     cd $SELF_DIR
